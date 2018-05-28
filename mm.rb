@@ -164,44 +164,88 @@ class Mastermind
     p code_matches
     puts ""
 
-    puts ""
-    puts "modifying analysis:"
-    puts ""
-    guess_positions_assigned = []
-    code_positions_assigned = []
+    matches_b = []
+    matches_w = []
     # for each guess position: add matches to analysis: dont overwrite with W
     code_matches.each do |match|
       position_guess = match[0]
       position_code = match[1]
       match_type = match[2]
-      if match_type == "B"
-        if code_positions_assigned.include?()
-        analysis[position_guess] = match_type
-        code_positions_assigned.push(position_code)
-        guess_positions_assigned.push(position_guess)
-        puts "added to analysis(B): " + match_type + " at position: " + position_guess.to_s
-      elsif ( match_type == "W" &&
-          !code_positions_assigned.include?(position_code) &&
-          !guess_positions_assigned.include?(position_guess) )
-        analysis[position_guess] = match_type
-        puts "added to analysis(W): " + match_type + " at position: " + position_guess.to_s
+      # skip if "B" match already found at this guess or code position
+      unless (match_nested_array_at_subposition?(matches_b, position_guess, 0) ||
+              match_nested_array_at_subposition?(matches_b, position_code, 1))
+        puts ""
+        puts "passed match_nested on match:"
+        p match
+        case match_type
+        when "W"
+            matches_w.push(match)
+            puts "W added"
+        when "B"
+          matches_b.push(match)
+          puts "B added"
+          # if "B" match, remove any saved "W" at this guess or code position
+          matches_w.each do |w_match|
+            puts "checking old Ws"
+            puts "position_guess = " + position_guess.to_s
+            puts "position_code = " + position_code.to_s
+            if (w_match[0] == position_guess || w_match[1] == position_code)
+              matches_w.delete(w_match)
+              puts "Deleted W:"
+              p w_match
+            end
+          end
+        end
       end
     end
-    # code_matches.each do |match|
-    #   position_guess = match[0]
-    #   position_code = match[1]
-    #   match_type = match[2]
-    #   if match_type == "W" && !code_positions_checked.include?(position_code)
-    #     analysis[position_guess] = match_type
-    #     puts "added to analysis(W): " + match_type + " at position: " + position_guess.to_s
-    #   end
-    # end
+    puts "B matches"
+    p matches_b
+    puts ""
+    puts "W matches"
+    p matches_w
+
+    puts ""
+    puts "modifying analysis:"
+    puts ""
+
+    # add "W" matches to analysis
+    # Can only have one "W" for any particular guess position
+    w_guess_positions_assigned = []
+    w_code_positions_assigned = []
+    matches_w.each do |match|
+      unless (w_guess_positions_assigned.include?(match[0]) ||
+              w_code_positions_assigned.include?(match[1]))
+        analysis[match[0]] = match[2]
+        w_guess_positions_assigned.push(match[0])
+        w_code_positions_assigned.push(match[1])
+      end
+    end
+    #  add "B" matches to analysis
+    matches_b.each { |match| analysis[match[0]] = match[2] }
+    puts ""
     puts "Analysis made:"
     p analysis
     puts "end analyze_guess"
     puts ""
     puts "=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+="
     return analysis
+  end
+
+  # checks to see if there is an item matches any nested array at a specific
+  # position. eg: "3" matches in subposition 1 in array [ [1,4], [2,3] ], in
+  # the second element (position 1).
+  # note: assumes 'array' has size of at least 'subposition + 1'
+  #       (no exception handling yet)
+  # Returns true upon the first occurrence of a match
+  def match_nested_array_at_subposition?(array, item, subposition)
+    found_match = false
+    array.each do |nested_array|
+      if nested_array[subposition] == item
+        found_match = true
+        break
+      end
+    end
+    return found_match
   end
 
   #
